@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>深海钓鱼大师</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(to bottom, #1a2980, #26d0ce);
+            height: 100vh;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .water {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 75%;
+            background: linear-gradient(to bottom, rgba(30, 144, 255, 0.6), rgba(0, 0, 139, 0.9));
+            overflow: hidden;
+        }
+        
+        .water::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.3), transparent);
+        }
+        
+        .sky {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 25%;
+            background: linear-gradient(to top, #1a2980, #000428);
+        }
+        
+        .fishing-rod {
+            position: absolute;
+            top: 10%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 10px;
+            height: 100px;
+            background-color: #8B4513;
+            z-index: 10;
+            transform-origin: bottom center;
+        }
+        
+        .fishing-line {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            width: 2px;
+            height: 0;
+            background-color: rgba(255, 255, 255, 0.7);
+            transform: translateX(-50%);
+            z-index: 5;
+            transition: height 0.5s;
+        }
+        
+        .hook {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 15px;
+            height: 15px;
+            border: 2px solid #silver;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(45deg);
+            background-color: silver;
+            z-index: 5;
+            display: none;
+        }
+        
+        .fish {
+            position: absolute;
+            width: 40px;
+            height: 20px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            transition: transform 0.2s;
+            cursor: pointer;
+        }
+        
+        .caught-fish {
+            position: absolute;
+            width: 40px;
+            height: 20px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            z-index: 20;
+            animation: fishCaught 1s forwards;
+        }
+        
+        .bubble {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            animation: bubbleRise 5s infinite;
+        }
+        
+        .score-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 100;
+            font-size: 18px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .action-btn {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 15px 30px;
+            background: linear-gradient(to right, #f83600, #f9d423);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+        }
+        
+        .action-btn:active {
+            transform: translateX(-50%) scale(0.95);
+        }
+        
+        .splash {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+            border-radius: 50%;
+            z-index: 15;
+            animation: splash 0.5s forwards;
+            opacity: 0;
+        }
+        
+        .catch-message {
+            position: absolute;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+            z-index: 100;
+            animation: floatUp 2s forwards;
+            opacity: 0;
+        }
+        
+        @keyframes fishCaught {
+            0% { transform: translateY(0) rotate(0); }
+            50% { transform: translateY(-100px) rotate(180deg); }
+            100% { transform: translateY(-200px) rotate(360deg); opacity: 0; }
+        }
+        
+        @keyframes bubbleRise {
+            0% { transform: translateY(0); opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { transform: translateY(-300px); opacity: 0; }
+        }
+        
+        @keyframes splash {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(1); opacity: 0; }
+        }
+        
+        @keyframes floatUp {
+            0% { transform: translateY(0); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100px); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="sky"></div>
+        <div class="water" id="water"></div>
+        
+        <div class="fishing-rod" id="rod"></div>
+        <div class="fishing-line" id="line"></div>
+        <div class="hook" id="hook"></div>
+        
+        <div class="score-panel">
+            已钓到: <span id="score">0</span> 条鱼
+        </div>
+        
+        <button class="action-btn" id="action-btn">投放鱼钩</button>
+    </div>
+
+    <script>
+        // 游戏元素
+        const water = document.getElementById('water');
+        const rod = document.getElementById('rod');
+        const line = document.getElementById('line');
+        const hook = document.getElementById('hook');
+        const actionBtn = document.getElementById('action-btn');
+        const scoreDisplay = document.getElementById('score');
+        
+        // 游戏状态
+        let isFishing = false;
+        let score = 0;
+        let fishes = [];
+        let waterHeight = water.offsetHeight;
+        let waterTop = water.offsetTop;
+        
+        // 鱼的种类和分数
+        const fishTypes = [
+            { name: 'common', color: '#F4A460', points: 1, chance: 0.7, speed: 2 },
+            { name: 'rare', color: '#4682B4', points: 3, chance: 0.25, speed: 3 },
+            { name: 'epic', color: '#9370DB', points: 5, chance: 0.04, speed: 4 },
+            { name: 'legendary', color: '#FFD700', points: 10, chance: 0.01, speed: 5 }
+        ];
+        
+        // 初始化游戏
+        function initGame() {
+            createFishes(15);
+            createBubbles(20);
+            
+            // 窗口大小改变时更新水的高度
+            window.addEventListener('resize', () => {
+                waterHeight = water.offsetHeight;
+                waterTop = water.offsetTop;
+            });
+            
+            // 点击按钮投放/收回鱼钩
+            actionBtn.addEventListener('click', toggleFishing);
+        }
+        
+        // 创建鱼
+        function createFishes(count) {
+            for (let i = 0; i < count; i++) {
+                createFish();
+            }
+        }
+        
+        // 创建单条鱼
+        function createFish() {
+            const fish = document.createElement('div');
+            fish.className = 'fish';
+            
+            // 随机选择鱼的类型
+            const fishType = getRandomFishType();
+            fish.dataset.type = fishType.name;
+            fish.dataset.points = fishType.points;
+            
+            // 设置鱼的外观
+            fish.style.backgroundColor = fishType.color;
+            fish.style.borderRadius = '50% 50% 50% 50% / 60% 60% 40% 40%';
+            
+            // 添加鱼鳍和尾巴
+            const tail = document.createElement('div');
+            tail.style.position = 'absolute';
+            tail.style.right = '-10px';
+            tail.style.top = '5px';
+            tail.style.width = '10px';
+            tail.style.height = '10px';
+            tail.style.backgroundColor = fishType.color;
+            tail.style.clipPath = 'polygon(0 0, 0 100%, 100% 50%)';
+            fish.appendChild(tail);
+            
+            // 添加眼睛
+            const eye = document.createElement('div');
+            eye.style.position = 'absolute';
+            eye.style.left = '5px';
+            eye.style.top = '5px';
+            eye.style.width = '5px';
+            eye.style.height = '5px';
+            eye.style.backgroundColor = 'white';
+            eye.style.borderRadius = '50%';
+            fish.appendChild(eye);
+            
+            // 随机位置和方向
+            const direction = Math.random() > 0.5 ? 1 : -1;
+            const y = waterTop + Math.random() * (waterHeight - 50);
+            const x = direction > 0 ? -50 : window.innerWidth + 50;
+            
+            fish.style.left = `${x}px`;
+            fish.style.top = `${y}px`;
+            fish.style.transform = direction > 0 ? 'scaleX(1)' : 'scaleX(-1)';
+            
+            // 保存鱼的数据
+            const fishData = {
+                element: fish,
+                x: x,
+                y: y,
+                speed: fishType.speed * (0.5 + Math.random()),
+                direction: direction,
+                type: fishType
+            };
+            
+            fishes.push(fishData);
+            water.appendChild(fish);
+        }
+        
+        // 随机获取鱼的类型
+        function getRandomFishType() {
+            const rand = Math.random();
+            let cumulativeChance = 0;
+            
+            for (const type of fishTypes) {
+                cumulativeChance += type.chance;
+                if (rand < cumulativeChance) {
+                    return type;
+                }
+            }
+            
+            return fishTypes[0]; // 默认返回普通鱼
+        }
+        
+        // 创建气泡
+        function createBubbles(count) {
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => {
+                    createBubble();
+                }, Math.random() * 5000);
+            }
+        }
+        
+        // 创建单个气泡
+        function createBubble() {
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            
+            const size = 5 + Math.random() * 15;
+            const x = Math.random() * window.innerWidth;
+            const y = waterTop + waterHeight;
+            
+            bubble.style.width = `${size}px`;
+            bubble.style.height = `${size}px`;
+            bubble.style.left = `${x}px`;
+            bubble.style.top = `${y}px`;
+            bubble.style.animationDuration = `${3 + Math.random() * 7}s`;
+            
+            water.appendChild(bubble);
+            
+            // 气泡上升完成后移除
+            bubble.addEventListener('animationend', () => {
+                water.removeChild(bubble);
+                // 创建新气泡
+                setTimeout(createBubble, Math.random() * 2000);
+            });
+        }
+        
+        // 投放/收回鱼钩
+        function toggleFishing() {
+            if (isFishing) {
+                // 收回鱼钩
+                line.style.height = '0';
+                hook.style.display = 'none';
+                actionBtn.textContent = '投放鱼钩';
+                isFishing = false;
+            } else {
+                // 投放鱼钩
+                const lineHeight = waterHeight + 50;
+                line.style.height = `${lineHeight}px`;
+                hook.style.display = 'block';
+                hook.style.top = `${lineHeight}px`;
+                actionBtn.textContent = '收回鱼钩';
+                isFishing = true;
+                
+                // 创建水花效果
+                createSplash(window.innerWidth / 2, waterTop);
+                
+                // 检查是否钓到鱼
+                setTimeout(checkCatch, 1000);
+            }
+        }
+        
+        // 检查是否钓到鱼
+        function checkCatch() {
+            if (!isFishing) return;
+            
+            const hookX = window.innerWidth / 2;
+            const hookY = waterTop + parseInt(line.style.height);
+            const catchRadius = 30;
+            
+            // 计算钓鱼概率
+            let caught = false;
+            let caughtFish = null;
+            
+            // 检查是否有鱼在钩子附近
+            for (let i = 0; i < fishes.length; i++) {
+                const fish = fishes[i];
+                const dx = fish.x - hookX;
+                const dy = fish.y - hookY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < catchRadius) {
+                    // 根据鱼的类型计算捕获概率
+                    const catchChance = 0.8 / fish.type.points;
+                    if (Math.random() < catchChance) {
+                        caught = true;
+                        caughtFish = fish;
+                        break;
+                    }
+                }
+            }
+            
+            if (caught && caughtFish) {
+                // 钓到鱼了
+                catchFish(caughtFish);
+            } else {
+                // 没钓到，继续尝试
+                setTimeout(checkCatch, 1000);
+            }
+        }
+        
+        // 钓到鱼
+        function catchFish(fish) {
+            // 增加分数
+            score += fish.type.points;
+            scoreDisplay.textContent = score;
+            
+            // 创建钓到鱼的动画
+            const caughtFish = document.createElement('div');
+            caughtFish.className = 'caught-fish';
+            caughtFish.style.backgroundColor = fish.type.color;
+            caughtFish.style.borderRadius = '50% 50% 50% 50% / 60% 60% 40% 40%';
+            caughtFish.style.left = `${fish.x}px`;
+            caughtFish.style.top = `${fish.y}px`;
+            
+            // 添加鱼鳍和尾巴
+            const tail = document.createElement('div');
+            tail.style.position = 'absolute';
+            tail.style.right = '-10px';
+            tail.style.top = '5px';
+            tail.style.width = '10px';
+            tail.style.height = '10px';
+            tail.style.backgroundColor = fish.type.color;
+            tail.style.clipPath = 'polygon(0 0, 0 100%, 100% 50%)';
+            caughtFish.appendChild(tail);
+            
+            // 添加眼睛
+            const eye = document.createElement('div');
+            eye.style.position = 'absolute';
+            eye.style.left = '5px';
+            eye.style.top = '5px';
+            eye.style.width = '5px';
+            eye.style.height = '5px';
+            eye.style.backgroundColor = 'white';
+            eye.style.borderRadius = '50%';
+            caughtFish.appendChild(eye);
+            
+            document.body.appendChild(caughtFish);
+            
+            // 显示捕获消息
+            showCatchMessage(fish);
+            
+            // 移除原来的鱼
+            water.removeChild(fish.element);
+            fishes = fishes.filter(f => f !== fish);
+            
+            // 动画结束后移除元素
+            caughtFish.addEventListener('animationend', () => {
+                document.body.removeChild(caughtFish);
+                // 创建新的鱼
+                createFish();
+            });
+            
+            // 收回鱼钩
+            toggleFishing();
+        }
+        
+        // 显示捕获消息
+        function showCatchMessage(fish) {
+            const message = document.createElement('div');
+            message.className = 'catch-message';
+            message.textContent = `+${fish.type.points} 分!`;
+            message.style.left = `${fish.x}px`;
+            message.style.top = `${fish.y - 30}px`;
+            
+            // 根据鱼的稀有度设置颜色
+            switch(fish.type.name) {
+                case 'common':
+                    message.style.color = '#FFFFFF';
+                    break;
+                case 'rare':
+                    message.style.color = '#4682B4';
+                    break;
+                case 'epic':
+                    message.style.color = '#9370DB';
+                    break;
+                case 'legendary':
+                    message.style.color = '#FFD700';
+                    message.style.fontSize = '32px';
+                    break;
+            }
+            
+            document.body.appendChild(message);
+            
+            // 动画结束后移除
+            message.addEventListener('animationend', () => {
+                document.body.removeChild(message);
+            });
+        }
+        
+        // 创建水花效果
+        function createSplash(x, y) {
+            const splash = document.createElement('div');
+            splash.className = 'splash';
+            splash.style.left = `${x - 30}px`;
+            splash.style.top = `${y - 30}px`;
+            
+            document.body.appendChild(splash);
+            
+            // 动画结束后移除
+            splash.addEventListener('animationend', () => {
+                document.body.removeChild(splash);
+            });
+        }
+        
+        // 更新鱼的位置
+        function updateFishes() {
+            fishes.forEach(fish => {
+                fish.x += fish.speed * fish.direction;
+                fish.element.style.left = `${fish.x}px`;
+                
+                // 如果鱼游出屏幕，从另一侧重新进入
+                if ((fish.direction > 0 && fish.x > window.innerWidth + 50) || 
+                    (fish.direction < 0 && fish.x < -50)) {
+                    fish.x = fish.direction > 0 ? -50 : window.innerWidth + 50;
+                    fish.y = waterTop + Math.random() * (waterHeight - 50);
+                    fish.element.style.top = `${fish.y}px`;
+                }
+            });
+            
+            requestAnimationFrame(updateFishes);
+        }
+        
+        // 初始化游戏
+        initGame();
+        updateFishes();
+    </script>
+</body>
+</html>
